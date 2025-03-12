@@ -15,7 +15,7 @@
 To clone this repository on your local computer please run:
 
 ```shell
-$ git clone https://github.com/gustaveroussy/Fandrei_et_al_2025.git
+$ git clone https://github.com/ElsaB-Lab/Fandrei_et_al_2025.git
 ```
 ## :question: Questions
 
