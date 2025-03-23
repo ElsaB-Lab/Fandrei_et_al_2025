@@ -1,6 +1,6 @@
 # Code and Data accompanying manuscript _Clonal Evolution of PPM1D Mutations in the Spectrum of Myeloid Disorders_ 
 
-![](./figures/main/figure_2/fig_2e.png)
+![](./figures/main/figure_2/fig_2f.png)
 
 ## :open_file_folder: Repository Structure
 
