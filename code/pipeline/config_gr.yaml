@@ -1,0 +1,57 @@
+# Config file for single-cell DNA-seq GR pipeline
+
+steps: [alignment,filtering,SNV_CNV,PROTEIN]
+tmp: /mnt/beegfs/scratch/d_fandrei/tmp_sc_dna
+
+sample: ["M180"]
+input_sample_path: /mnt/beegfs/userdata/d_fandrei/PPM1D/sc_fastq
+design_file: /mnt/beegfs/userdata/d_fandrei/PPM1D/analysis/PPM1D_design.tsv 
+output_sample_path: /mnt/beegfs/scratch/d_fandrei/sc_res_gr
+
+########################## Alignment ############################
+
+reference_genome: "hg19"
+reference_genome_path: "/mnt/beegfs/pipelines/single-cell_dna/tapestri_database/v2/hg19/ucsc_hg19.fa"
+
+type_analysis: "dna+protein"
+panel_path: "/mnt/beegfs/userdata/d_fandrei/PPM1D/tapestri_panel/DNA" 
+panel_protein_path: "/mnt/beegfs/userdata/d_fandrei/PPM1D/tapestri_panel/protein/" 
+
+########################## Filtering ############################
+
+filtering:
+  filter_na: True
+  filter_na_percent: 25
+  predict_missing_value: True
+  max_vaf_percent: 95
+  # whitelist: 
+
+  filtering_variants:
+    min_dp: 10
+    min_gq: 30
+    vaf_ref: 5
+    vaf_het: 35
+    vaf_hom: 95
+    min_mut_prct_cells: 1
+    min_prct_cells: 50
+
+############################ SNV ################################
+
+snv_norm_dimred:
+ method_dimred : "fa"
+ max_dims: 6
+ clustering_method: ["leiden","dbscan","hdbscan"]
+
+############################ CNV ################################
+
+cnv_norm_dimred:
+ max_dims: 6
+ clustering_method: ["leiden","dbscan","hdbscan"]
+
+
+############################ PROT ################################
+
+prot_norm_dimred:
+ normalization: ["CLR","DSB"]
+ clustering_method: ["leiden","dbscan","hdbscan"]
+ isotype_control: ["IgG2a", "IgG2b"]
