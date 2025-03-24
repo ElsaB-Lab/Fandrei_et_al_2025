@@ -106,6 +106,19 @@ ExpandColors <- function(colors, n, steps = 11){
   }
 }
 
+# Gene Color Interpolation
+gene_colors = c(
+  "#FC822AFF",
+  ATM="pink2",
+  "linen",
+  CBL="grey30",
+  "black",
+  DNMT3A="goldenrod1",
+  PPM1D="#6bc5e3",
+  TET2="#749e89",
+  TP53="#CD534CFF"
+)
+
 .colorInterpolation <- function(x, mutations, map) {
   col <- ExpandColors(gene_colors[[x]], n=length(mutations), steps=7)$expanded.color
   names(col) <- map[[x]]

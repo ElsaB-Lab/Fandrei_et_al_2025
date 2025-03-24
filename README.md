@@ -20,3 +20,5 @@ $ git clone https://github.com/ElsaB-Lab/Fandrei_et_al_2025.git
 ## :question: Questions
 
 If any question on the repo, feel free to contact [David](https://github.com/davidfdr99).
+
+## :book: Citation
