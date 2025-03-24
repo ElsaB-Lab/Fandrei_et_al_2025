@@ -13,86 +13,53 @@ for (pack in .cran_packages) {
 
 source("helper/my_toolbox.R")
 source("helper/ggstyles.R")
+source("~/.R/ggstyles.R")
 theme_set(gtheme(14))
 
 Sys.setlocale(locale = "fr_FR.UTF-8")
 
+set.seed(1234)
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # LOAD DATA
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-h5path = '/Users/davidfandrei/Desktop/PPM1D/tapestri/data/merged.h5'
+sce = readRDS("data/sce_merged.RDS")
 
-dsb_norm_prot <- read.csv("../../analysis/norm_prot_matrix.csv") %>%
-  column_to_rownames("X") %>% 
-  dplyr::select(-IgG2a, -IgG2b) %>%
-  t() %>% 
-  as.data.frame()
-
-# Clin data
-dd = read_excel("data/dd.xlsx")
-
-# Molecular data
-maf <- read_xlsx("data/maf_final.tsv")
-
-# detected variants
-final_detected = readRDS("../../analysis/final_detected.RDS")
-
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Function sce to Seurat
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-sce_to_seurat = function(sce, adt_norm) {
-  
-  sce<-scDNA::enumerate_clones(sce)
-  
-  exclude = which(rownames(altExp(sce, "Protein")) %in% "CD22")
-  
-  altExp(sce, "Protein") = altExp(sce, "Protein")[-exclude,]
-  
-  assay(sce, "DSB_norm") <- adt_norm
-  
-  cdata_prot = droplet_metadata %>% dplyr::filter(Cell %in% colnames(protein_mat)) %>% column_to_rownames("Cell") %>% S4Vectors::DataFrame()
-  protein_sce@colData <- cdata_prot
-  
-  SingleCellExperiment::altExp(sce, "Protein") <- protein_sce
-  
-  # altExp(sce, "Protein") = altExp(sce, "Protein")[which(!rownames(altExp(sce, "Protein")) %in% c("IgG2a", "IgG2b")),]
-  
-  s<-Seurat::as.Seurat(x = altExp(sce),counts="Protein",data="DSB_norm")
-  s<-SeuratObject::RenameAssays(object = s, originalexp = 'Protein')
-  DefaultAssay(s) <- "Protein"
-  
-  return(s)
-  
-}
-
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Get variants
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-include_variants = final_detected %>%
-  group_by(id) %>%
-  filter(row_number() == 1, single_cell_id != "M181")
-
-sce_merged <-tapestri_h5_to_sce(
-  file=h5path,
-  variant_set = include_variants,
-  GT_cutoff = 0,
-  DP_cutoff = 0,
-  GQ_cutoff = 0,
-  protein = F
+sample_clonal_hierarchy = data.frame(
+  sample = c("M180", "M182", "M183", "M184", "M185", "M186", "M187"),
+  ppm1d_clonal_hierarchy = c("subclonal", "co-/dominant", "bystander", "co-/dominant", "co-/dominant", "bystander", "co-/dominant")
 )
 
-# Compare ADT levels between groups
-ppm1d_var = rowData(sce_merged) %>%
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Fig. 6a: UMAP patient GR021
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+dsb_norm_prot = assay(altExp(sce, "norm_PROT"))
+pca = prcomp(dsb_norm_prot)
+umap <- data.frame(
+  uwot::umap(
+    pca$rotation[,1:6],
+    n_neighbors = 6,
+    min_dist = 0.001,
+  )
+)
+
+colnames(umap) <- c("UMAP_1", "UMAP_2")
+colData(sce)$UMAP_1 <- umap$UMAP_1
+colData(sce)$UMAP_2 <- umap$UMAP_2
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Fig. 6b: Differential protein abundance according to PPM1D status
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+ppm1d_var = rowData(sce) %>%
   as.data.frame() %>%
   filter(SYMBOL == "PPM1D") %>% 
   rownames_to_column("ID") %>% 
   pull(ID)
 
-ppm1d_ngt = t(assay(sce_merged, "NGT")[ppm1d_var,]) %>%
+ppm1d_ngt = t(assay(sce, "NGT")[ppm1d_var,]) %>%
   data.frame() %>%
   mutate(Het = "", Hom = "")
 
@@ -105,3 +72,71 @@ for (var in colnames(ppm1d_ngt)[1:6]) {
     }
   }
 }
+
+ppm1d_mut = ppm1d_ngt %>% 
+  mutate(PPM1D_BIN = ifelse(Het != "" | Hom != "", 1, 0)) %>% 
+  pull(PPM1D_BIN)
+
+ppm1d_mapping = colData(sce) %>%
+  as.data.frame() %>%
+  mutate(PPM1D_BIN = ppm1d_mut) %>%
+  rownames_to_column("Barcode")
+
+processed_df =  t(assay(altExp(sce))) %>%
+  data.frame() %>%
+  rownames_to_column("Barcode") %>%
+  left_join(ppm1d_mapping, by="Barcode") %>%
+  left_join(sample_clonal_hierarchy, by="sample") %>%
+  relocate(sample, PPM1D_BIN, ppm1d_clonal_hierarchy, .before="CD10") %>%
+  pivot_longer(c(5:23)) %>%
+  filter(!name %in% c("IgG2a", "IgG2b", "CD22")) %>%
+  mutate(PPM1D_BIN = factor(ifelse(PPM1D_BIN==1, "MUT", "WT"), levels = c("WT", "MUT") ))
+
+counts = processed_df %>%
+  group_by(ppm1d_clonal_hierarchy, name, PPM1D_BIN) %>%
+  summarize(mean_expression = mean(value)) %>%
+  pivot_wider(names_from = 'PPM1D_BIN', values_from = 'mean_expression') %>% 
+  ungroup() %>%
+  mutate(log2FoldChange = log2(MUT/WT)) %>%
+  mutate(zscore = scale(log2FoldChange))
+
+p_values = processed_df %>%
+  group_by(ppm1d_clonal_hierarchy, name ) %>%
+  rstatix::wilcox_test(value ~ PPM1D_BIN)
+
+clonal_hierarchy_plot = left_join(counts, p_values) %>%
+  mutate(padj = p.adjust(p), ) %>% 
+  mutate(ppm1d_clonal_hierarchy = factor(paste0("PPM1D\n", ppm1d_clonal_hierarchy), levels = c("PPM1D\nbystander", "PPM1D\nsubclonal", "PPM1D\nco-/dominant")))
+
+dotplot = ggplot(clonal_hierarchy_plot, aes(x=name, y=ppm1d_clonal_hierarchy, color=log2FoldChange)) +
+  geom_point(aes(shape = ifelse(padj >= 0.05, NA, "s")), size = 3.5, stroke = 2, color = "grey10" ) +
+  geom_point(shape=16, size=4) +
+  scico::scale_color_scico(
+    palette = "vik", midpoint = 0,
+    begin = .1, end = .9, breaks = scales::breaks_pretty(3),
+    limits = c(-max(abs(clonal_hierarchy_plot$log2FoldChange)), max(abs(clonal_hierarchy_plot$log2FoldChange)) )
+  ) +
+  scale_shape_manual(values = c(21), name = "FDR < 0.05", labels = c("yes", "")) +
+  mytheme(8) +
+  theme(
+    panel.grid.major = element_line(color="grey80", linetype=2, linewidth = .3),
+    panel.grid.minor = element_blank(),
+    axis.title = element_blank(),
+    axis.text.x = element_text(angle=45, hjust=1, vjust=1),
+    plot.title = element_text(face = "bold", size=rel(1.25))
+  ) +
+  guides(
+    color = guide_colorbar(
+      title = "Log2FC (Mut vs. WT)", order=1,
+      tticks.linewidth= .75/.pt, frame.linewidth = .5/.pt, title.vjust=.56, title.position = "top",
+      barwidth = unit(.35, 'lines'), barheight= unit(4, 'lines')
+    )
+  ) +
+  ggtitle("Single cell differential expression of surface proteins")
+
+ggsave2(
+  "figures/main/figure_6/fig_6b.png",
+  dotplot,
+  width=120, height=35, dpi=400, bg="white", unit="mm", scale=1.6
+)
+

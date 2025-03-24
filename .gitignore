@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 .DS_Store
+data/sce_merged.RDS
 figures/main/figure_2/fig_2a.png
 figures/main/figure_2/fig_2b.png
 figures/main/figure_2/fig_2c.png
@@ -11,4 +12,5 @@ figures/main/figure_2/fig_2e.png
 figures/main/figure_3/
 figures/main/figure_4/
 figures/main/figure_5/
+figures/main/figure_6/
 figures/supplement/ppm1d_vaf_clonal_groups.png
