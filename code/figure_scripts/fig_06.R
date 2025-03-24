@@ -11,13 +11,12 @@ for (pack in .cran_packages) {
   ))
 }
 
-source("helper/my_toolbox.R")
-source("helper/ggstyles.R")
+source("code/helper/my_toolbox.R")
+source("code/helper/ggstyles.R")
 source("~/.R/ggstyles.R")
 theme_set(gtheme(14))
 
 Sys.setlocale(locale = "fr_FR.UTF-8")
-
 set.seed(1234)
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -35,19 +34,36 @@ sample_clonal_hierarchy = data.frame(
 # Fig. 6a: UMAP patient GR021
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-dsb_norm_prot = assay(altExp(sce, "norm_PROT"))
-pca = prcomp(dsb_norm_prot)
-umap <- data.frame(
-  uwot::umap(
-    pca$rotation[,1:6],
-    n_neighbors = 6,
-    min_dist = 0.001,
-  )
-)
+final_detected = read_excel("data/single_cell_data.xlsx", sheet=1)
+s_m180 = import_sample_norm_prot("M180")
 
-colnames(umap) <- c("UMAP_1", "UMAP_2")
-colData(sce)$UMAP_1 <- umap$UMAP_1
-colData(sce)$UMAP_2 <- umap$UMAP_2
+m180_ngt_umap = DimPlot(s_m180,reduction = "UMAP", pt.size=.8, group.by = c("PPM1D.510", "TET2.I274I",  "DNMT3A.R635W", "RUNX1.D198N")) +
+  plot_layout(guides="collect", nrow=2) & theme(legend.position="bottom", legend.text = element_text(size=16), strip.text.x = element_text(size=18), axis.text = element_text(size=14), title = element_text(size=21)) & scale_ngt
+
+m180_pheno_umap = FeaturePlot_scCustom(
+  s_m180,
+  reduction = "UMAP",
+  features = c("CD34", "CD38", "HLA-DR", "CD117", "CD7", "CD13"),
+  pt.size = .1, na_cutoff = 1, max.cutoff = "q99",
+  colors_use = rev(MetBrewer::met.brewer("Hokusai1",n=100)),
+  raster = F,
+  num_columns = 3
+) &
+  theme(
+    legend.position="right",
+    legend.text = element_text(size=16),
+    strip.text.x = element_text(size=18),
+    axis.text = element_text(size=14),
+    title = element_text(size=21)
+  )
+
+fig_6a_pl = (m180_ngt_umap | m180_pheno_umap) + plot_layout(widths=c(1,1.9)) + plot_annotation(title="GR021") & dimtheme
+
+ggsave2(
+  "figures/main/figure_6/fig_6a.png",
+  fig_6a_pl,
+  height=105, width=210, scale=2, unit="mm", dpi=400, bg="white"
+)
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Fig. 6b: Differential protein abundance according to PPM1D status

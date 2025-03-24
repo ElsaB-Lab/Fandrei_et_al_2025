@@ -141,3 +141,16 @@ anno.clonality.all <- c(
   "Only PPM1D" = pal_npg[3] 
 )
 
+scale_ngt = scale_color_manual(name="", values=c("#49a045", "#4462ae", "#f6b2d1", "#000000"), labels=c("WT", "Het", "Hom", "Missing"))
+
+dimtheme = theme(
+  title = element_text(size=21),
+  axis.text = element_blank(),
+  axis.ticks = element_blank(),
+  axis.line = element_blank(),
+  axis.title = element_blank()
+)
+
+
+
+
