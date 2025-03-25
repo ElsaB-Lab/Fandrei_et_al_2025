@@ -233,9 +233,9 @@ ggsave2(
 # Fig. 3b: Mutation growth rate per gene
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-fc_mut_groups = www %>%
-  dplyr::select(nkey , Patient, Sample, Gene, Gene_Pchange, time_diff = step_days, VAF, timepoint_binary) %>%
-  group_by(Patient, Gene_Pchange) %>%
+fc_mut_groups = ww %>%
+  dplyr::select(nkey , GRId, Gene, Gene_Pchange, time_diff = step_days, VAF, timepoint_binary) %>%
+  group_by(GRId, Gene_Pchange) %>%
   mutate(lag_VAF = lag(VAF, default = 0)) %>%
   mutate(VAF_diff =  100 * (VAF - lag_VAF), VAF_fc =  VAF / lag_VAF) %>%
   filter(time_diff > 5) %>%
