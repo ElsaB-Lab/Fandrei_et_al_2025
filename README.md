@@ -22,3 +22,5 @@ $ git clone https://github.com/ElsaB-Lab/Fandrei_et_al_2025.git
 If any question on the repo, feel free to contact [David](https://github.com/davidfdr99).
 
 ## :book: Citation
+
+Fandrei D, Pegliasco J, Pasquier F, Ibrahim N, Kfoury M, Berthon C, et al. Clonal Evolution of PPM1D Mutations in the Spectrum of Myeloid Disorders. Clinical Cancer Research. American Association for Cancer Research (AACR); 2025. Available from: [doi.org/10.1158/1078-0432.CCR-24-3683](http://dx.doi.org/10.1158/1078-0432.ccr-24-3683)
