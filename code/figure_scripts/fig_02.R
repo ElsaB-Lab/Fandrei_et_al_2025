@@ -73,12 +73,7 @@ ddb = ddb %>% mutate(
                 "Aucun" = "de novo hematological",
                 "Paragangliome" = "Other", "Lynch" = "Other", "Autre" = "Other",
                 "Prostate" = "Prostate cancer", "Osteosarcome" = "Osteosarcoma", "Poumon" = "Lung cancer"),
-  tmn = ifelse(DIAG2 %in% c("MDS", "AML"), "tMN", "CH/CCUS/MPN"),
-  latency = ifelse(
-    DIAG2 == "MPN",
-    as.numeric(difftime(Date_NGS, Date_diagnosis, unit="days"))/30.417,
-    as.numeric(difftime(Date_diagnosis, Date_cancer, unit="days"))/30.417
-  )
+  tmn = ifelse(DIAG2 %in% c("MDS", "AML"), "tMN", "CH/CCUS/MPN")
 )
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -116,14 +111,8 @@ mafb %>%
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 ddb_surv = ddb %>%
-  filter(!is.na(Date_LFU)) %>%
-  mutate(
-    os = ifelse(DIAG2 == "MPN",
-                interval(Date_NGS, Date_LFU) %/% months(1),
-                interval(Date_diagnosis, Date_LFU) %/% months(1)
-    ),
-    Death = ifelse(Death == "oui", 1 , 0)
-  )
+  filter(!is.na(os)) %>%
+  mutate(Death = ifelse(Death == "oui", 1 , 0))
 
 os_diag = km_plot(
   ddb_surv,
